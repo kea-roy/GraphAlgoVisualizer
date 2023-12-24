@@ -1,4 +1,5 @@
 import json
+import sys
 import tkinter
 from tkinter import *
 from tkinter import filedialog
@@ -104,8 +105,13 @@ def select_file():
 def import_graph():
     file = select_file()
     if file is None:
+        print("No file was selected")
         return
-    new_graph = nx.read_edgelist(file, create_using=nx.DiGraph, nodetype=str)
+    try:
+        new_graph = nx.read_edgelist(file, create_using=nx.DiGraph, nodetype=str)
+    except TypeError as error:
+        print("ERROR: File contents are not in correct format: ", type(error).__name__, "–", error, file=sys.stderr)
+        return
     update_graph(new_graph)
 
 
@@ -120,8 +126,12 @@ def add_edge():
         graph.add_edge(words[0], words[1])
     elif len(words) > 2:
         new_str = inp.split(" ",2)[-1].replace("'", '"')
-        print(new_str)
-        graph.add_edge(words[0], words[1], **json.loads(new_str))
+        try:
+            attributes = json.loads(new_str)
+            graph.add_edge(words[0], words[1], **attributes)
+        except json.decoder.JSONDecodeError as error:
+            print("ERROR: Couldn't parse input as JSON", type(error).__name__, "–", error, file=sys.stderr)
+            return
     update_graph(graph)
 
 

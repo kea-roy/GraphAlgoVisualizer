@@ -13,6 +13,8 @@ matplotlib.use("TkAgg")
 
 # Create Graph
 graph = nx.DiGraph()
+color_maps = []
+iteration_index = 0
 # graph.add_nodes_from('ABCDEFGH')
 # graph.add_edges_from([
 #     ('A', 'B', {'capacity': 4, 'flow': 0}),
@@ -38,10 +40,16 @@ layout = {
 
 def backPressed():
     print("back")
+    global iteration_index
+    iteration_index = iteration_index - 1
+    update_colors(color_maps, iteration_index)
 
 
 def nextPressed():
     print("next")
+    global iteration_index
+    iteration_index = iteration_index + 1
+    update_colors(color_maps, iteration_index)
 
 
 def select_file():
@@ -107,6 +115,14 @@ def on_algo_selection_change(algoName: StringVar):
 
 
 # layout = nx.spring_layout(graph,seed=1)
+def update_colors(color_maps, i):
+    f = plt.Figure(figsize=(5, 5), dpi=100)
+    a = f.add_subplot(111)
+    canvas = FigureCanvasTkAgg(f, window)
+    canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
+    nx.draw_networkx_nodes(graph,layout,node_color=color_maps[i], node_size=600, ax=a)
+
+
 def update_graph(new_graph):
     f = plt.Figure(figsize=(5, 5), dpi=100)
     a = f.add_subplot(111)
@@ -208,10 +224,13 @@ def run_algo():
             print("ERROR: Sink Nod'", "'" + e_node + "'", "is not in graph", file=sys.stderr)
             return
     # run algorithm
+    global color_maps
+    global iteration_index
     if algo_name == "DFS":
         print("DFS")
         s_node = startNodeField.get()
-        algos.get_dfs_color_maps(graph, s_node)
+        color_maps = algos.get_dfs_color_maps(graph, s_node)
+        update_colors(color_maps, 0)
     elif algo_name == "BFS":
         print("BFS")
     elif algo_name == "Dijkstra's":

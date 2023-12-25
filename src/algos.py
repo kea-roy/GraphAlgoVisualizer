@@ -2,7 +2,7 @@ import networkx as nx
 from collections import deque
 
 
-def get_dfs_color_maps(graph: nx.Graph, s_node: str):
+def get_dfs_color_maps(graph: nx.Graph, s_node: str) -> list[list[str]]:
     color_maps = []
     visited = []
     stack = deque()
@@ -23,3 +23,4 @@ def get_dfs_color_maps(graph: nx.Graph, s_node: str):
             else:
                 color_map.append("steel-blue")
         color_maps.append(color_map)
+    return color_maps

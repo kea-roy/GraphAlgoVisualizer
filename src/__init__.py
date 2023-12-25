@@ -1,6 +1,7 @@
 import json
 import sys
 import tkinter
+import algos
 from tkinter import *
 from tkinter import filedialog
 import networkx as nx
@@ -74,7 +75,7 @@ def add_edge():
 
 
 # Function that takes in name of algorithm and adjusts requirements
-def on_algo_selection_change(algoName):
+def on_algo_selection_change(algoName: StringVar):
     if algoName in ["DFS", "BFS"]:
         # Need a Directed/Undirected Graph and Start Node
         print("Start Node")
@@ -145,6 +146,7 @@ def import_graph():
     if algoName == "DFS" or algoName == "BFS":
         print("Directed/Undirected")
         graph_type = nx.Graph
+        data_tuple = ()
     elif algoName == "Dijkstra's":
         print("Directed/Undirected Weighted")
         graph_type = nx.Graph
@@ -208,6 +210,8 @@ def run_algo():
     # run algorithm
     if algo_name == "DFS":
         print("DFS")
+        s_node = startNodeField.get()
+        algos.get_dfs_color_maps(graph, s_node)
     elif algo_name == "BFS":
         print("BFS")
     elif algo_name == "Dijkstra's":

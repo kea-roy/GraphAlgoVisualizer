@@ -64,9 +64,10 @@ def get_dijkstras_color_maps(graph: nx.Graph, s_node: str) -> list[list[str]]:
     entry = [0, s_node, None]
     entry_finder[s_node] = entry
     heappush(heap, entry)
+    prev.update({s_node: None})
     while len(heap) > 0:
         cur_dist, cur_node, prev_node = heappop(heap)
-        if cur_node == 'removed':  # outdated value
+        if cur_node == '<removed>':  # outdated value
             continue
         visited.append(cur_node)
         dist.update({cur_node: cur_dist})
@@ -92,4 +93,6 @@ def get_dijkstras_color_maps(graph: nx.Graph, s_node: str) -> list[list[str]]:
             else:
                 color_map.append("steelblue")
         color_maps.append(color_map)
+    print(dist)
+    print(prev)
     return color_maps

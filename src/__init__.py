@@ -82,12 +82,31 @@ def add_edge():
         new_str = inp.split(" ", 2)[-1].replace("'", '"')
         try:
             attributes = json.loads(new_str)
-            graph.add_edge(words[0], words[1], **attributes)
+            data_tuple = ()
+            algo_name = selectedAlgo.get()
+            if algo_name == 'Ford-Fulkerson':
+                data_tuple = (('capacity', int), ('flow', int),)
+            elif algo_name in ["Dijkstra's", "Prim's", "Kruskal's"]:
+                data_tuple = (('weight', float),)
+            if check_edge(attributes, data_tuple):
+                graph.add_edge(words[0], words[1], **attributes)
+            else:
+                print("ERROR: Edge doesn't contain required information for", algo_name,
+                      file=sys.stderr)
         except json.decoder.JSONDecodeError as error:
             print("ERROR: Couldn't parse input as JSON", type(error).__name__, "–", error,
                   file=sys.stderr)
             return
     update_graph(graph)
+
+
+def check_edge(attributes, data_tuple) -> bool:
+    if not isinstance(attributes, dict):
+        return False
+    for itemName, className in data_tuple:
+        if itemName not in attributes:
+            return False
+    return True
 
 
 def check_requirements(graph_to_check, data_tuple) -> bool:
@@ -149,7 +168,7 @@ def on_algo_selection_change(algoName):
         data_tuple = (('capacity', int), ('flow', int))
     # if graph already added, check graph contains weight information otherwise remove graph
     if not check_requirements(graph, data_tuple):
-        print("Current Graph does not meet requirements for ", algoName +
+        print("Current Graph does not meet requirements for", algoName +
               ", removing graph...")
         # remove graph
         graph = nx.DiGraph()

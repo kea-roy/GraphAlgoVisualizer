@@ -41,15 +41,23 @@ layout = {
 def backPressed():
     print("back")
     global iteration_index
+    if iteration_index-1 < 0:
+        print("reached start")
+        return
     iteration_index = iteration_index - 1
     update_colors(color_maps, iteration_index)
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
 
 
 def nextPressed():
     print("next")
     global iteration_index
+    if iteration_index+1 >= len(color_maps):
+        print("reached end")
+        return
     iteration_index = iteration_index + 1
     update_colors(color_maps, iteration_index)
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
 
 
 def select_file():
@@ -116,17 +124,17 @@ def on_algo_selection_change(algoName: StringVar):
 
 # layout = nx.spring_layout(graph,seed=1)
 def update_colors(color_maps, i):
-    f = plt.Figure(figsize=(5, 5), dpi=100)
-    a = f.add_subplot(111)
+    global canvas
+    nx.draw_networkx_nodes(graph, layout, node_color=color_maps[i], node_size=600, ax=axes)
     canvas = FigureCanvasTkAgg(f, window)
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
-    nx.draw_networkx_nodes(graph,layout,node_color=color_maps[i], node_size=600, ax=a)
 
 
 def update_graph(new_graph):
-    f = plt.Figure(figsize=(5, 5), dpi=100)
-    a = f.add_subplot(111)
-    # a.set_facecolor("w")
+    global f
+    global axes
+    global graph
+    global canvas
     labelMap = {}
     colorList = []
 
@@ -139,17 +147,16 @@ def update_graph(new_graph):
     print(labelMap)
     print(colorList)
 
-    nx.draw_networkx_edges(new_graph, layout, edge_color=colorList, ax=a, node_size=600)
-    nx.draw_networkx_edge_labels(new_graph, layout, edge_labels=labelMap, label_pos=0.7, ax=a)
-    nx.draw_networkx_nodes(new_graph, layout, node_color='steelblue', node_size=600, ax=a)
-    nx.draw_networkx_labels(new_graph, layout, ax=a)
+    nx.draw_networkx_edges(new_graph, layout, edge_color=colorList, ax=axes, node_size=600)
+    nx.draw_networkx_edge_labels(new_graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
+    nx.draw_networkx_nodes(new_graph, layout, node_color='steelblue', node_size=600, ax=axes)
+    nx.draw_networkx_labels(new_graph, layout, ax=axes)
 
     # create matplotlib canvas using figure `f` and assign to widget `window`
     canvas = FigureCanvasTkAgg(f, window)
 
     # get canvas as tkinter's widget and `grid` in widget `window`
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
-    global graph
     graph = new_graph
 
 
@@ -233,6 +240,9 @@ def run_algo():
         update_colors(color_maps, 0)
     elif algo_name == "BFS":
         print("BFS")
+        s_node = startNodeField.get()
+        color_maps = algos.get_bfs_color_maps(graph,s_node)
+        update_colors(color_maps, 0)
     elif algo_name == "Dijkstra's":
         print("Dijkstra")
     elif algo_name == "Prim's":
@@ -241,11 +251,20 @@ def run_algo():
         print("Kruskal")
     elif algo_name == "Ford-Fulkerson":
         print("Ford-Fulkerson")
+    # update iteration label
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
+    print(iteration_label_text.get())
 
 
 # Create Window
 window = Tk()
 window.title("Window")
+
+# Create Plot
+f = plt.Figure(figsize=(5, 5), dpi=100)
+axes = f.add_subplot(111)
+canvas = FigureCanvasTkAgg(f, window)
+canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
 
 # Create Frame
 widget_frame = Frame(window)
@@ -298,6 +317,10 @@ backButton = Button(button_frame, text="<", command=backPressed)
 backButton.grid(row=0, column=0, sticky=EW)
 nextButton = Button(button_frame, text=">", command=nextPressed)
 nextButton.grid(row=0, column=1, sticky=EW)
+iteration_label_text = tkinter.StringVar()
+# iteration_label_text.set("0/0")
+iteration_label = Label(button_frame, textvariable=iteration_label_text)
+iteration_label.grid(row=1, column=0, sticky=EW, columnspan=2)
 
 window.mainloop()
 

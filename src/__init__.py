@@ -41,23 +41,23 @@ layout = {
 def backPressed():
     print("back")
     global iteration_index
-    if iteration_index-1 < 0:
+    if iteration_index - 1 < 0:
         print("reached start")
         return
     iteration_index = iteration_index - 1
     update_colors(color_maps, iteration_index)
-    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
 
 
 def nextPressed():
     print("next")
     global iteration_index
-    if iteration_index+1 >= len(color_maps):
+    if iteration_index + 1 >= len(color_maps):
         print("reached end")
         return
     iteration_index = iteration_index + 1
     update_colors(color_maps, iteration_index)
-    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
 
 
 def select_file():
@@ -90,8 +90,32 @@ def add_edge():
     update_graph(graph)
 
 
+def check_requirements(graph_to_check, data_tuple) -> bool:
+    if len(graph_to_check.nodes) == 0:
+        return False
+    for u, v, e in graph_to_check.edges(data=True):
+        for itemName, className in data_tuple:
+            if itemName in e:
+                print(type(e[itemName]), className, isinstance(e[itemName], className))
+            if itemName not in e or not isinstance(e[itemName], className):
+                print("Error:", itemName, "data is not provided for edge", u, "-", v,
+                      file=sys.stderr)
+                return False
+    return True
+
+
+def clear_canvas():
+    global graph, f, axes, canvas
+    f = plt.Figure(figsize=(5, 5), dpi=100)
+    axes = f.add_subplot(111)
+    canvas = FigureCanvasTkAgg(f, window)
+    canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
+
+
 # Function that takes in name of algorithm and adjusts requirements
-def on_algo_selection_change(algoName: StringVar):
+def on_algo_selection_change(algoName):
+    global graph, f, axes, canvas
+    data_tuple = ()
     if algoName in ["DFS", "BFS"]:
         # Need a Directed/Undirected Graph and Start Node
         print("Start Node")
@@ -106,6 +130,7 @@ def on_algo_selection_change(algoName: StringVar):
         startNodeField.grid(row=0, column=1)
         sinkNodeLabel.grid_remove()
         sinkNodeField.grid_remove()
+        data_tuple = (('weight', float),)
     elif algoName in ["Prim's", "Kruskal's"]:
         # Need an Undirected Graph
         print("None")
@@ -113,6 +138,7 @@ def on_algo_selection_change(algoName: StringVar):
         startNodeField.grid_remove()
         sinkNodeLabel.grid_remove()
         sinkNodeField.grid_remove()
+        data_tuple = (('weight', float),)
     elif algoName == "Ford-Fulkerson":
         # Need a Directed Graph with Capacities and Flows and Start Node and End Node
         print("Source Node and Sink Node")
@@ -120,6 +146,14 @@ def on_algo_selection_change(algoName: StringVar):
         startNodeField.grid(row=0, column=1)
         sinkNodeLabel.grid(row=1, column=0)
         sinkNodeField.grid(row=1, column=1)
+        data_tuple = (('capacity', int), ('flow', int))
+    # if graph already added, check graph contains weight information otherwise remove graph
+    if not check_requirements(graph, data_tuple):
+        print("Current Graph does not meet requirements for ", algoName +
+              ", removing graph...")
+        # remove graph
+        graph = nx.DiGraph()
+    update_graph(graph)
 
 
 # layout = nx.spring_layout(graph,seed=1)
@@ -131,16 +165,20 @@ def update_colors(color_maps, i):
 
 
 def update_graph(new_graph):
-    global f
-    global axes
-    global graph
-    global canvas
+    global f, axes, graph, canvas
+    clear_canvas()
     labelMap = {}
     colorList = []
+    algo_name = selectedAlgo.get()
 
     for u, v, e in new_graph.edges(data=True):
-        label = '{}/{}'.format(e['flow'], e['capacity'])
-        color = 'green' if e['flow'] < e['capacity'] else 'red'
+        label = ''
+        color = 'green'
+        if algo_name == 'Ford-Fulkerson':
+            label = '{}/{}'.format(e['flow'], e['capacity'])
+            color = 'green' if e['flow'] < e['capacity'] else 'red'
+        elif algo_name in ["Dijkstra's", "Prim's", "Kruskal's"]:
+            label = '{}'.format(e['weight'])
         labelMap[(u, v)] = label
         colorList.append(color)
 
@@ -193,14 +231,8 @@ def import_graph():
         new_graph = nx.read_edgelist(file, create_using=graph_type, nodetype=node_type,
                                      edgetype=edge_type)
         # check required data is all present
-        for u, v, e in new_graph.edges(data=True):
-            for itemName, className in data_tuple:
-                if itemName in e:
-                    print(type(e[itemName]), className, isinstance(e[itemName], className))
-                if itemName not in e or not isinstance(e[itemName], className):
-                    print("Invalid File:", itemName, "data is not provided for edge", u, "-", v,
-                          file=sys.stderr)
-                    return
+        if not check_requirements(new_graph, data_tuple):
+            return
     except TypeError as error:
         print("ERROR: File contents are not in correct format: ", type(error).__name__, "–", error,
               file=sys.stderr)
@@ -237,22 +269,27 @@ def run_algo():
         print("DFS")
         s_node = startNodeField.get()
         color_maps = algos.get_dfs_color_maps(graph, s_node)
-        update_colors(color_maps, 0)
     elif algo_name == "BFS":
         print("BFS")
         s_node = startNodeField.get()
-        color_maps = algos.get_bfs_color_maps(graph,s_node)
+        color_maps = algos.get_bfs_color_maps(graph, s_node)
         update_colors(color_maps, 0)
     elif algo_name == "Dijkstra's":
         print("Dijkstra")
+        s_node = startNodeField.get()
+        color_maps = algos.get_dijkstras_color_maps(graph, s_node)
+        update_colors(color_maps, 0)
     elif algo_name == "Prim's":
         print("Prim")
     elif algo_name == "Kruskal's":
         print("Kruskal")
     elif algo_name == "Ford-Fulkerson":
         print("Ford-Fulkerson")
+    # update colors
+    update_colors(color_maps, 0)
     # update iteration label
-    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps)-1))
+    iteration_index = 0
+    iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
     print(iteration_label_text.get())
 
 

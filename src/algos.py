@@ -54,7 +54,8 @@ def get_bfs_color_maps(graph: nx.Graph, s_node: str) -> list[list[str]]:
     return color_maps
 
 
-def get_dijkstras_color_maps(graph: nx.Graph, s_node: str) -> tuple[list[list[str]],list[list[str]]]:
+def get_dijkstras_color_maps(graph: nx.Graph, s_node: str) -> tuple[
+    list[list[str]], list[list[str]]]:
     color_maps = []
     edge_color_maps = []
     dist = {}
@@ -170,9 +171,9 @@ def get_kruskals_color_maps(graph: nx.Graph) -> tuple[list[list[str]], list[list
     edge_color_maps = []
     mst_edges = []
     heap = []
-    for u,v,d in graph.edges(data=True):
-        weight = d.get('weight',1.0)
-        heappush(heap,(weight, u, v, d))
+    for u, v, d in graph.edges(data=True):
+        weight = d.get('weight', 1.0)
+        heappush(heap, (weight, u, v, d))
     visited = set()
     color_map = []
     for node in graph.nodes:
@@ -213,3 +214,88 @@ def get_kruskals_color_maps(graph: nx.Graph) -> tuple[list[list[str]], list[list
                 edge_color_map.append("red")
         edge_color_maps.append(edge_color_map)
     return color_maps, edge_color_maps
+
+
+def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node: str) -> tuple[
+    list[list[str]], list[list[str]], list[dict[tuple, str]]]:
+    max_flow = 0
+    path = True
+    color_map = ['steelblue'] * len(graph.nodes)
+    label_maps = []
+    edge_color_maps = []
+    label_map = {}
+    edge_color_map = []
+    for u, v, data in graph.edges(data=True):
+        label = '{}/{}'.format(data['flow'], data['capacity'])
+        label_map[(u, v)] = label
+        if data['flow'] >= data['capacity']:
+            color = 'red'
+        elif data['flow'] > 0:
+            print("Positive flow")
+            color = 'darkorange'
+        else:
+            color = 'green'
+        edge_color_map.append(color)
+    label_maps.append(label_map)
+    edge_color_maps.append(edge_color_map)
+    while path:
+        path, reserve = dfs(graph, source_node, sink_node)
+        max_flow += reserve
+        for from_node, to_node in zip(path, path[1:]):
+            if graph.has_edge(from_node, to_node):
+                graph[from_node][to_node]['flow'] += reserve
+            else:
+                graph[to_node][from_node]['flow'] -= reserve
+        # save state
+        label_map = {}
+        edge_color_map = []
+        for u, v, data in graph.edges(data=True):
+            label = '{}/{}'.format(data['flow'], data['capacity'])
+            label_map[(u, v)] = label
+            if data['flow'] >= data['capacity']:
+                color = 'red'
+            elif data['flow'] > 0:
+                print("Positive flow")
+                color = 'darkorange'
+            else:
+                color = 'green'
+            edge_color_map.append(color)
+        label_maps.append(label_map)
+        edge_color_maps.append(edge_color_map)
+    return [color_map] * len(label_maps), edge_color_maps, label_maps
+
+
+def dfs(graph: nx.DiGraph, source_node: str, sink_node: str) -> tuple[list, int]:
+    undirected = graph.to_undirected()
+    explored = {source_node}
+    stack = [(source_node, 0, dict(undirected[source_node]))]
+
+    while stack:
+        v, _, neighbours = stack[-1]
+        if v == sink_node:
+            break
+
+        while neighbours:
+            u, e = neighbours.popitem()
+            if u not in explored:
+                break
+        else:
+            stack.pop()
+            continue
+
+        in_direction = graph.has_edge(v, u)
+        capacity = e['capacity']
+        flow = e['flow']
+        neighbours = dict(undirected[u])
+
+        if in_direction and flow < capacity:
+            stack.append((u, capacity - flow, neighbours))
+            explored.add(u)
+        elif not in_direction and flow:
+            stack.append((u, flow, neighbours))
+            explored.add(u)
+
+    reserve = min((f for _, f, _ in stack[1:]), default=0)
+    path = [v for v, _, _ in stack]
+
+    return path, reserve

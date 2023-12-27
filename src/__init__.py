@@ -2,6 +2,7 @@ import json
 import sys
 import tkinter
 import algos
+import math
 from tkinter import *
 from tkinter import filedialog
 import networkx as nx
@@ -20,6 +21,7 @@ iteration_index = 0
 layout = {}
 labelMap = {}
 colorList = []
+label_maps = []
 
 
 # graph.add_nodes_from('ABCDEFGH')
@@ -131,8 +133,13 @@ def check_requirements(graph_to_check, data_tuple) -> bool:
 
 def clear_canvas():
     global graph, f, axes, canvas
-    f = plt.Figure(figsize=(5, 5), dpi=100)
+    f = plt.Figure(figsize=(8, 6), dpi=100)
     axes = f.add_subplot(111)
+    if window['bg'] == 'systemWindowBackgroundColor':
+        color_tuple = window.winfo_rgb('systemWindowBackgroundColor')
+        color_tuple = (color_tuple[0]/65536, color_tuple[1]/65536, color_tuple[2]/65536)
+        f.set_facecolor(color_tuple)
+        axes.set_facecolor(color_tuple)
     canvas = FigureCanvasTkAgg(f, window)
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
 
@@ -196,9 +203,13 @@ def update_colors(color_maps, i, edge_color_maps=None):
         nx.draw_networkx_edges(graph, layout, edge_color=edge_color_maps[i], node_size=600, ax=axes)
     else:
         nx.draw_networkx_edges(graph, layout, edge_color=colorList, node_size=600, ax=axes)
-    nx.draw_networkx_edge_labels(graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
     nx.draw_networkx_nodes(graph, layout, node_color=color_maps[i], node_size=600, ax=axes)
     nx.draw_networkx_labels(graph, layout, ax=axes)
+    if selectedAlgo.get() == 'Ford-Fulkerson':
+        nx.draw_networkx_edge_labels(graph, layout, edge_labels=label_maps[i], label_pos=0.7,
+                                     ax=axes)
+    else:
+        nx.draw_networkx_edge_labels(graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
     canvas = FigureCanvasTkAgg(f, window)
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
 
@@ -215,7 +226,12 @@ def update_graph(new_graph):
         color = 'green'
         if algo_name == 'Ford-Fulkerson':
             label = '{}/{}'.format(e['flow'], e['capacity'])
-            color = 'green' if e['flow'] < e['capacity'] else 'red'
+            if e['flow'] >= e['capacity']:
+                color = 'red'
+            elif e['flow'] > 0:
+                color = 'darkorange'
+            else:
+                color = 'green'
         elif algo_name in ["Dijkstra's", "Prim's", "Kruskal's"]:
             label = '{}'.format(e['weight'])
             color = 'red'
@@ -224,17 +240,17 @@ def update_graph(new_graph):
 
     print(labelMap)
     print(colorList)
-    try:
-        layout = nx.layout.planar_layout(new_graph)
-    except nx.exception.NetworkXException:
-        layout = nx.layout.spring_layout(new_graph, seed=1)
-    # if algo_name == 'Ford-Fulkerson':
-    #     layout = nx.drawing.nx_agraph.graphviz_layout(new_graph, prog='dot', args='-Grankdir=LR')
-
+    if algo_name == 'Ford-Fulkerson':
+        layout = nx.drawing.nx_agraph.graphviz_layout(new_graph, prog='dot', args='-Grankdir=LR')
+    else:
+        try:
+            layout = nx.layout.planar_layout(new_graph)
+        except nx.exception.NetworkXException:
+            layout = nx.layout.spring_layout(new_graph, seed=1, k=5 / math.sqrt(len(new_graph.nodes)))
     nx.draw_networkx_edges(new_graph, layout, edge_color=colorList, ax=axes, node_size=600)
-    nx.draw_networkx_edge_labels(new_graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
     nx.draw_networkx_nodes(new_graph, layout, node_color='steelblue', node_size=600, ax=axes)
     nx.draw_networkx_labels(new_graph, layout, ax=axes)
+    nx.draw_networkx_edge_labels(new_graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
 
     # create matplotlib canvas using figure `f` and assign to widget `window`
     canvas = FigureCanvasTkAgg(f, window)
@@ -324,12 +340,13 @@ def run_algo():
             print("ERROR: Sink Nod'", "'" + e_node + "'", "is not in graph", file=sys.stderr)
             return
     # run algorithm
-    global color_maps, edge_color_maps
+    global color_maps, edge_color_maps, label_maps
     global iteration_index
     if algo_name == "DFS":
         print("DFS")
         s_node = startNodeField.get()
         color_maps = algos.get_dfs_color_maps(graph, s_node)
+        update_colors(color_maps, 0)
     elif algo_name == "BFS":
         print("BFS")
         s_node = startNodeField.get()
@@ -350,8 +367,11 @@ def run_algo():
         update_colors(color_maps, 0, edge_color_maps)
     elif algo_name == "Ford-Fulkerson":
         print("Ford-Fulkerson")
-    # update colors
-    update_colors(color_maps, 0)
+        source_node = startNodeField.get()
+        sink_node = sinkNodeField.get()
+        color_maps, edge_color_maps, label_maps = (
+            algos.get_ford_fulkerson_color_maps(graph, source_node, sink_node))
+        update_colors(color_maps, 0, edge_color_maps)
     # update iteration label
     iteration_index = 0
     iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
@@ -363,10 +383,7 @@ window = Tk()
 window.title("Window")
 
 # Create Plot
-f = plt.Figure(figsize=(5, 5), dpi=100)
-axes = f.add_subplot(111)
-canvas = FigureCanvasTkAgg(f, window)
-canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
+clear_canvas()
 
 # Create Frame
 widget_frame = Frame(window)

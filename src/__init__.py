@@ -8,13 +8,20 @@ import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tktooltip import ToolTip
 
 matplotlib.use("TkAgg")
 
 # Create Graph
 graph = nx.DiGraph()
 color_maps = []
+edge_color_maps = []
 iteration_index = 0
+layout = {}
+labelMap = {}
+colorList = []
+
+
 # graph.add_nodes_from('ABCDEFGH')
 # graph.add_edges_from([
 #     ('A', 'B', {'capacity': 4, 'flow': 0}),
@@ -32,11 +39,10 @@ iteration_index = 0
 #
 # ])
 
-layout = {
-    'A': [0, 1], 'B': [1, 2], 'C': [1, 1], 'D': [1, 0],
-    'E': [2, 2], 'F': [2, 1], 'G': [2, 0], 'H': [3, 1],
-}
-
+# layout = {
+#     'A': [0, 1], 'B': [1, 2], 'C': [1, 1], 'D': [1, 0],
+#     'E': [2, 2], 'F': [2, 1], 'G': [2, 0], 'H': [3, 1],
+# }
 
 def backPressed():
     print("back")
@@ -45,7 +51,7 @@ def backPressed():
         print("reached start")
         return
     iteration_index = iteration_index - 1
-    update_colors(color_maps, iteration_index)
+    update_colors(color_maps, iteration_index, edge_color_maps)
     iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
 
 
@@ -56,7 +62,7 @@ def nextPressed():
         print("reached end")
         return
     iteration_index = iteration_index + 1
-    update_colors(color_maps, iteration_index)
+    update_colors(color_maps, iteration_index, edge_color_maps)
     iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
 
 
@@ -166,25 +172,39 @@ def on_algo_selection_change(algoName):
         sinkNodeLabel.grid(row=1, column=0)
         sinkNodeField.grid(row=1, column=1)
         data_tuple = (('capacity', int), ('flow', int))
+    # check default graph type is set correctly
+    if len(graph.nodes) == 0:
+        if type(graph) != nx.Graph and algoName in ["Prim's", "Kruskal's"]:
+            graph = nx.Graph()
+        elif type(graph) != nx.DiGraph and algoName == "Ford-Fulkerson":
+            graph = nx.DiGraph()
     # if graph already added, check graph contains weight information otherwise remove graph
-    if not check_requirements(graph, data_tuple):
+    if len(graph.nodes) > 0 and not check_requirements(graph, data_tuple):
         print("Current Graph does not meet requirements for", algoName +
               ", removing graph...")
         # remove graph
         graph = nx.DiGraph()
     update_graph(graph)
+    iteration_label_text.set("")
 
 
 # layout = nx.spring_layout(graph,seed=1)
-def update_colors(color_maps, i):
+def update_colors(color_maps, i, edge_color_maps=None):
     global canvas
+    clear_canvas()
+    if edge_color_maps is not None and len(edge_color_maps) == len(color_maps):
+        nx.draw_networkx_edges(graph, layout, edge_color=edge_color_maps[i], node_size=600, ax=axes)
+    else:
+        nx.draw_networkx_edges(graph, layout, edge_color=colorList, node_size=600, ax=axes)
+    nx.draw_networkx_edge_labels(graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
     nx.draw_networkx_nodes(graph, layout, node_color=color_maps[i], node_size=600, ax=axes)
+    nx.draw_networkx_labels(graph, layout, ax=axes)
     canvas = FigureCanvasTkAgg(f, window)
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
 
 
 def update_graph(new_graph):
-    global f, axes, graph, canvas
+    global f, axes, graph, canvas, layout, labelMap, colorList
     clear_canvas()
     labelMap = {}
     colorList = []
@@ -198,11 +218,18 @@ def update_graph(new_graph):
             color = 'green' if e['flow'] < e['capacity'] else 'red'
         elif algo_name in ["Dijkstra's", "Prim's", "Kruskal's"]:
             label = '{}'.format(e['weight'])
+            color = 'red'
         labelMap[(u, v)] = label
         colorList.append(color)
 
     print(labelMap)
     print(colorList)
+    try:
+        layout = nx.layout.planar_layout(new_graph)
+    except nx.exception.NetworkXException:
+        layout = nx.layout.spring_layout(new_graph, seed=1)
+    # if algo_name == 'Ford-Fulkerson':
+    #     layout = nx.drawing.nx_agraph.graphviz_layout(new_graph, prog='dot', args='-Grankdir=LR')
 
     nx.draw_networkx_edges(new_graph, layout, edge_color=colorList, ax=axes, node_size=600)
     nx.draw_networkx_edge_labels(new_graph, layout, edge_labels=labelMap, label_pos=0.7, ax=axes)
@@ -252,11 +279,26 @@ def import_graph():
         # check required data is all present
         if not check_requirements(new_graph, data_tuple):
             return
+        # check it is connected if prims/kruskals
+        if algoName in ["Prim's", "Kruskal's"] and not nx.is_connected(new_graph):
+            print("ERROR: Graph isn't connected, so", algoName, "is not suitable",
+                  file=sys.stderr)
+            return
     except TypeError as error:
         print("ERROR: File contents are not in correct format: ", type(error).__name__, "–", error,
               file=sys.stderr)
         return
     update_graph(new_graph)
+
+
+def get_msg_format() -> str:
+    algo_name = selectedAlgo.get()
+    if algo_name in ["Dijkstra's", "Prim's", "Kruskal's"]:
+        return "Format: [from_node] [to_node] '{'weight':1.0}'"
+    elif algo_name == "Ford-Fulkerson":
+        return "Format: [from_node] [to_node] '{'flow':1, 'capacity':1}'"
+    else:
+        return "Format: [from_node] [to_node]"
 
 
 def run_algo():
@@ -282,7 +324,7 @@ def run_algo():
             print("ERROR: Sink Nod'", "'" + e_node + "'", "is not in graph", file=sys.stderr)
             return
     # run algorithm
-    global color_maps
+    global color_maps, edge_color_maps
     global iteration_index
     if algo_name == "DFS":
         print("DFS")
@@ -296,12 +338,16 @@ def run_algo():
     elif algo_name == "Dijkstra's":
         print("Dijkstra")
         s_node = startNodeField.get()
-        color_maps = algos.get_dijkstras_color_maps(graph, s_node)
-        update_colors(color_maps, 0)
+        color_maps, edge_color_maps = algos.get_dijkstras_color_maps(graph, s_node)
+        update_colors(color_maps, 0, edge_color_maps)
     elif algo_name == "Prim's":
         print("Prim")
+        color_maps, edge_color_maps = algos.get_prims_color_maps(graph)
+        update_colors(color_maps, 0, edge_color_maps)
     elif algo_name == "Kruskal's":
         print("Kruskal")
+        color_maps, edge_color_maps = algos.get_kruskals_color_maps(graph)
+        update_colors(color_maps, 0, edge_color_maps)
     elif algo_name == "Ford-Fulkerson":
         print("Ford-Fulkerson")
     # update colors
@@ -346,6 +392,7 @@ openFileButton.grid(row=5, column=0)
 Label(widget_frame, text="via Edge").grid(row=6, column=0, sticky=EW)
 edgeInputField = Entry(widget_frame, justify='center')
 edgeInputField.grid(row=7, column=0)
+ToolTip(edgeInputField, msg=get_msg_format, delay=1.0, **{"width": "2000"})
 cmdButton = Button(widget_frame, text="Add Edge", command=add_edge)
 cmdButton.grid(row=8, column=0, sticky=EW, padx=16)
 # Step 3 Label
@@ -378,6 +425,7 @@ iteration_label_text = tkinter.StringVar()
 iteration_label = Label(button_frame, textvariable=iteration_label_text)
 iteration_label.grid(row=1, column=0, sticky=EW, columnspan=2)
 
+update_graph(graph)
 window.mainloop()
 
 # Create an Undirected Graph

@@ -5,6 +5,7 @@ import algos
 import math
 from tkinter import *
 from tkinter import filedialog
+from tkinter.messagebox import showerror
 import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
@@ -63,6 +64,12 @@ def add_edge():
     inp = edgeInputField.get().strip()
     words = inp.split(" ")
     if len(words) == 2:
+        algo_name = selectedAlgo.get()
+        if algo_name in ['Ford-Fulkerson', "Dijkstra's", "Prim's", "Kruskal's"]:
+            print("ERROR: Edge doesn't contain required information for", algo_name,
+                  file=sys.stderr)
+            showerror(message="ERROR: Edge doesn't contain required information for " + algo_name)
+            return
         graph.add_edge(words[0], words[1])
     elif len(words) > 2:
         new_str = inp.split(" ", 2)[-1].replace("'", '"')
@@ -79,9 +86,14 @@ def add_edge():
             else:
                 print("ERROR: Edge doesn't contain required information for", algo_name,
                       file=sys.stderr)
+                showerror(
+                    message="ERROR: Edge doesn't contain required information for " + algo_name)
+                return
         except json.decoder.JSONDecodeError as error:
             print("ERROR: Couldn't parse input as JSON", type(error).__name__, "–", error,
                   file=sys.stderr)
+            showerror(message="ERROR: Couldn't parse input as JSON " + type(error).__name__ + " – "
+                              + str(error))
             return
     update_graph(graph)
 
@@ -105,6 +117,8 @@ def check_requirements(graph_to_check, data_tuple) -> bool:
             if itemName not in e or not isinstance(e[itemName], className):
                 print("Error:", itemName, "data is not provided for edge", u, "-", v,
                       file=sys.stderr)
+                showerror(
+                    message="ERROR: " + itemName + " data is not provided for edge " + u + " - " + v)
                 return False
     return True
 
@@ -264,6 +278,7 @@ def import_graph():
         data_tuple = (('capacity', int), ('flow', int),)
     else:
         print("ERROR: Step 1 Not Completed", file=sys.stderr)
+        showerror(message="ERROR: Step 1 Not Completed")
         return
     file = select_file()
     if file is None:
@@ -279,10 +294,13 @@ def import_graph():
         if algo_name in ["Prim's", "Kruskal's"] and not nx.is_connected(new_graph):
             print("ERROR: Graph isn't connected, so", algo_name, "is not suitable",
                   file=sys.stderr)
+            showerror(message="ERROR: Graph isn't connected, so " + algo_name + " is not suitable")
             return
     except TypeError as error:
-        print("ERROR: File contents are not in correct format: ", type(error).__name__, "–", error,
+        print("ERROR: File contents are not in correct format:", type(error).__name__, "–", error,
               file=sys.stderr)
+        showerror(message="ERROR: File contents are not in correct format: " + type(error).__name__
+                          + "–" + str(error))
         return
     update_graph(new_graph)
 
@@ -302,10 +320,12 @@ def run_algo():
     algo_name = selectedAlgo.get()
     if algo_name not in optionList:
         print("ERROR: Step 1 Not Completed", file=sys.stderr)
+        showerror(message="ERROR: Step 1 Not Completed")
         return
     # check step 2
     if len(graph.nodes) == 0:
-        print("ERROR: Graph not added", file=sys.stderr)
+        print("ERROR: No graph has been added", file=sys.stderr)
+        showerror(message="ERROR: No graph has been added")
         return
     # check step 3
     if startNodeField.winfo_ismapped():
@@ -313,11 +333,13 @@ def run_algo():
         if s_node not in graph.nodes:
             print("ERROR: Start/Source Node", "'" + s_node + "'", "is not in graph",
                   file=sys.stderr)
+            showerror(message="ERROR: Start/Source Node '"+s_node+"' is not in graph")
             return
     if sinkNodeField.winfo_ismapped():
         e_node = sinkNodeField.get()
         if e_node not in graph.nodes:
-            print("ERROR: Sink Nod'", "'" + e_node + "'", "is not in graph", file=sys.stderr)
+            print("ERROR: Sink Node'", "'" + e_node + "'", "is not in graph", file=sys.stderr)
+            showerror(message="ERROR: Sink Node '"+e_node+"' is not in graph")
             return
     # run algorithm
     global color_maps, edge_color_maps, label_maps

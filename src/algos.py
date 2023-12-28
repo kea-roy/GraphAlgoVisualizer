@@ -55,7 +55,7 @@ def get_bfs_color_maps(graph: nx.Graph, s_node: str) -> list[list[str]]:
 
 
 def get_dijkstras_color_maps(graph: nx.Graph, s_node: str) -> tuple[
-    list[list[str]], list[list[str]]]:
+        list[list[str]], list[list[str]]]:
     color_maps = []
     edge_color_maps = []
     dist = {}
@@ -217,7 +217,7 @@ def get_kruskals_color_maps(graph: nx.Graph) -> tuple[list[list[str]], list[list
 
 
 def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node: str) -> tuple[
-    list[list[str]], list[list[str]], list[dict[tuple, str]]]:
+        list[list[str]], list[list[str]], list[dict[tuple, str]]]:
     max_flow = 0
     path = True
     color_map = ['steelblue'] * len(graph.nodes)

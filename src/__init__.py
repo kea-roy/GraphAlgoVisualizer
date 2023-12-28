@@ -24,29 +24,7 @@ colorList = []
 label_maps = []
 
 
-# graph.add_nodes_from('ABCDEFGH')
-# graph.add_edges_from([
-#     ('A', 'B', {'capacity': 4, 'flow': 0}),
-#     ('A', 'C', {'capacity': 5, 'flow': 0}),
-#     ('A', 'D', {'capacity': 7, 'flow': 0}),
-#     ('B', 'E', {'capacity': 7, 'flow': 0}),
-#     ('C', 'E', {'capacity': 6, 'flow': 0}),
-#     ('C', 'F', {'capacity': 4, 'flow': 0}),
-#     ('C', 'G', {'capacity': 1, 'flow': 0}),
-#     ('D', 'F', {'capacity': 8, 'flow': 0}),
-#     ('D', 'G', {'capacity': 1, 'flow': 0}),
-#     ('E', 'H', {'capacity': 7, 'flow': 0}),
-#     ('F', 'H', {'capacity': 6, 'flow': 0}),
-#     ('G', 'H', {'capacity': 4, 'flow': 0}),
-#
-# ])
-
-# layout = {
-#     'A': [0, 1], 'B': [1, 2], 'C': [1, 1], 'D': [1, 0],
-#     'E': [2, 2], 'F': [2, 1], 'G': [2, 0], 'H': [3, 1],
-# }
-
-def backPressed():
+def back_pressed():
     print("back")
     global iteration_index
     if iteration_index - 1 < 0:
@@ -57,7 +35,7 @@ def backPressed():
     iteration_label_text.set("{}/{}".format(iteration_index, len(color_maps) - 1))
 
 
-def nextPressed():
+def next_pressed():
     print("next")
     global iteration_index
     if iteration_index + 1 >= len(color_maps):
@@ -135,27 +113,27 @@ def clear_canvas():
     global graph, f, axes, canvas
     f = plt.Figure(figsize=(8, 6), dpi=100)
     axes = f.add_subplot(111)
-    if window['bg'] == 'systemWindowBackgroundColor':
-        color_tuple = window.winfo_rgb('systemWindowBackgroundColor')
-        color_tuple = (color_tuple[0]/65536, color_tuple[1]/65536, color_tuple[2]/65536)
-        f.set_facecolor(color_tuple)
-        axes.set_facecolor(color_tuple)
+    # if window['bg'] == 'systemWindowBackgroundColor':  # On macOS
+    #     color_tuple = window.winfo_rgb('systemWindowBackgroundColor2')
+    #     color_tuple = (color_tuple[0]/65536, color_tuple[1]/65536, color_tuple[2]/65536)
+    #     f.set_facecolor(color_tuple)
+    #     axes.set_facecolor(color_tuple)
     canvas = FigureCanvasTkAgg(f, window)
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=1)
 
 
 # Function that takes in name of algorithm and adjusts requirements
-def on_algo_selection_change(algoName):
+def on_algo_selection_change(algo_name):
     global graph, f, axes, canvas
     data_tuple = ()
-    if algoName in ["DFS", "BFS"]:
+    if algo_name in ["DFS", "BFS"]:
         # Need a Directed/Undirected Graph and Start Node
         print("Start Node")
         startNodeLabel.grid(row=0, column=0)
         startNodeField.grid(row=0, column=1)
         sinkNodeLabel.grid_remove()
         sinkNodeField.grid_remove()
-    elif algoName == "Dijkstra's":
+    elif algo_name == "Dijkstra's":
         # Need a Directed/Undirected Graph with weights and Start Node
         print("Start Node")
         startNodeLabel.grid(row=0, column=0)
@@ -163,7 +141,7 @@ def on_algo_selection_change(algoName):
         sinkNodeLabel.grid_remove()
         sinkNodeField.grid_remove()
         data_tuple = (('weight', float),)
-    elif algoName in ["Prim's", "Kruskal's"]:
+    elif algo_name in ["Prim's", "Kruskal's"]:
         # Need an Undirected Graph
         print("None")
         startNodeLabel.grid_remove()
@@ -171,7 +149,7 @@ def on_algo_selection_change(algoName):
         sinkNodeLabel.grid_remove()
         sinkNodeField.grid_remove()
         data_tuple = (('weight', float),)
-    elif algoName == "Ford-Fulkerson":
+    elif algo_name == "Ford-Fulkerson":
         # Need a Directed Graph with Capacities and Flows and Start Node and End Node
         print("Source Node and Sink Node")
         startNodeLabel.grid(row=0, column=0)
@@ -181,13 +159,13 @@ def on_algo_selection_change(algoName):
         data_tuple = (('capacity', int), ('flow', int))
     # check default graph type is set correctly
     if len(graph.nodes) == 0:
-        if type(graph) != nx.Graph and algoName in ["Prim's", "Kruskal's"]:
+        if type(graph) != nx.Graph and algo_name in ["Prim's", "Kruskal's"]:
             graph = nx.Graph()
-        elif type(graph) != nx.DiGraph and algoName == "Ford-Fulkerson":
+        elif type(graph) != nx.DiGraph and algo_name == "Ford-Fulkerson":
             graph = nx.DiGraph()
     # if graph already added, check graph contains weight information otherwise remove graph
     if len(graph.nodes) > 0 and not check_requirements(graph, data_tuple):
-        print("Current Graph does not meet requirements for", algoName +
+        print("Current Graph does not meet requirements for", algo_name +
               ", removing graph...")
         # remove graph
         graph = nx.DiGraph()
@@ -196,14 +174,15 @@ def on_algo_selection_change(algoName):
 
 
 # layout = nx.spring_layout(graph,seed=1)
-def update_colors(color_maps, i, edge_color_maps=None):
+def update_colors(new_color_maps, i, new_edge_color_maps=None):
     global canvas
     clear_canvas()
-    if edge_color_maps is not None and len(edge_color_maps) == len(color_maps):
-        nx.draw_networkx_edges(graph, layout, edge_color=edge_color_maps[i], node_size=600, ax=axes)
+    if new_edge_color_maps is not None and len(new_edge_color_maps) == len(new_color_maps):
+        nx.draw_networkx_edges(graph, layout, edge_color=new_edge_color_maps[i], node_size=600,
+                               ax=axes)
     else:
         nx.draw_networkx_edges(graph, layout, edge_color=colorList, node_size=600, ax=axes)
-    nx.draw_networkx_nodes(graph, layout, node_color=color_maps[i], node_size=600, ax=axes)
+    nx.draw_networkx_nodes(graph, layout, node_color=new_color_maps[i], node_size=600, ax=axes)
     nx.draw_networkx_labels(graph, layout, ax=axes)
     if selectedAlgo.get() == 'Ford-Fulkerson':
         nx.draw_networkx_edge_labels(graph, layout, edge_labels=label_maps[i], label_pos=0.7,
@@ -246,7 +225,8 @@ def update_graph(new_graph):
         try:
             layout = nx.layout.planar_layout(new_graph)
         except nx.exception.NetworkXException:
-            layout = nx.layout.spring_layout(new_graph, seed=1, k=5 / math.sqrt(len(new_graph.nodes)))
+            layout = nx.layout.spring_layout(new_graph, seed=1,
+                                             k=5 / math.sqrt(len(new_graph.nodes)))
     nx.draw_networkx_edges(new_graph, layout, edge_color=colorList, ax=axes, node_size=600)
     nx.draw_networkx_nodes(new_graph, layout, node_color='steelblue', node_size=600, ax=axes)
     nx.draw_networkx_labels(new_graph, layout, ax=axes)
@@ -265,20 +245,20 @@ def import_graph():
     node_type = None
     edge_type = None
     data_tuple = True
-    algoName = selectedAlgo.get()
-    if algoName == "DFS" or algoName == "BFS":
+    algo_name = selectedAlgo.get()
+    if algo_name == "DFS" or algo_name == "BFS":
         print("Directed/Undirected")
         graph_type = nx.Graph
         data_tuple = ()
-    elif algoName == "Dijkstra's":
+    elif algo_name == "Dijkstra's":
         print("Directed/Undirected Weighted")
         graph_type = nx.Graph
         data_tuple = (('weight', float),)
-    elif algoName in ["Prim's", "Kruskal's"]:
+    elif algo_name in ["Prim's", "Kruskal's"]:
         print("Undirected Weighted")
         graph_type = nx.Graph
         data_tuple = (('weight', float),)
-    elif algoName == "Ford-Fulkerson":
+    elif algo_name == "Ford-Fulkerson":
         print("Directed Capacity Flow")
         graph_type = nx.DiGraph
         data_tuple = (('capacity', int), ('flow', int),)
@@ -296,8 +276,8 @@ def import_graph():
         if not check_requirements(new_graph, data_tuple):
             return
         # check it is connected if prims/kruskals
-        if algoName in ["Prim's", "Kruskal's"] and not nx.is_connected(new_graph):
-            print("ERROR: Graph isn't connected, so", algoName, "is not suitable",
+        if algo_name in ["Prim's", "Kruskal's"] and not nx.is_connected(new_graph):
+            print("ERROR: Graph isn't connected, so", algo_name, "is not suitable",
                   file=sys.stderr)
             return
     except TypeError as error:
@@ -380,7 +360,7 @@ def run_algo():
 
 # Create Window
 window = Tk()
-window.title("Window")
+window.title("Graph Algorithm Visualizer")
 
 # Create Plot
 clear_canvas()
@@ -433,75 +413,13 @@ runAlgoButton.grid(row=12, column=0)
 # Control Steps Buttons
 button_frame = Frame(widget_frame)
 button_frame.grid(row=13, column=0)
-backButton = Button(button_frame, text="<", command=backPressed)
+backButton = Button(button_frame, text="<", command=back_pressed)
 backButton.grid(row=0, column=0, sticky=EW)
-nextButton = Button(button_frame, text=">", command=nextPressed)
+nextButton = Button(button_frame, text=">", command=next_pressed)
 nextButton.grid(row=0, column=1, sticky=EW)
 iteration_label_text = tkinter.StringVar()
-# iteration_label_text.set("0/0")
 iteration_label = Label(button_frame, textvariable=iteration_label_text)
 iteration_label.grid(row=1, column=0, sticky=EW, columnspan=2)
 
 update_graph(graph)
 window.mainloop()
-
-# Create an Undirected Graph
-# UndirectedGraph = nx.Graph()
-
-
-# edge_list = [(0, 1), (1, 2), (2, 3), (3, 5), (1, 4), (2, 4)]
-# color_map = []
-# G1 = nx.DiGraph()
-# G1.add_edges_from(edge_list, )
-#
-# G2 = nx.complete_graph(5, create_using=nx.DiGraph)
-# G2 = nx.relabel_nodes(G2, {0: "A", 1: "B", 2: "C", 3: "D", 4: "E"})
-# G_connector = nx.from_edgelist([(0, "A"), ("A", 0)], create_using=nx.DiGraph)
-#
-# G = nx.compose_all([G1, G2, G_connector])
-# for node in G:
-#     if isinstance(node, str) and node < 'F':
-#         color_map.append('red')
-#     elif isinstance(node, int):
-#         if node < 2:
-#             color_map.append('red')
-#         else:
-#             color_map.append('blue')
-#     else:
-#         color_map.append('blue')
-#
-# print(color_map)
-# nx.draw(G, node_color=color_map, with_labels=True)
-# plt.show()
-
-# Create a Directed Graph
-# DirectedGraph = nx.DiGraph()
-#
-# DirectedGraph.add_edge(1, 2, weight=0.9)
-# DirectedGraph.add_edge(2, 3, weight=1.0)
-# DirectedGraph.add_edge(1, 2, weight=1.2)
-# DirectedGraph.add_edge("A", "B", weight=1.3)
-# DirectedGraph.add_node("C")
-# DirectedGraph.add_node(print)
-#
-# edge_list = [(1, 2), (2, 3), (3, 5), (6, 7), (1, 4), (2, 4)]
-#
-# # G = nx.from_edgelist(edge_list, create_using=nx.DiGraph)
-# nx.draw(G, with_labels=True)
-#
-# # To access degree of a node
-# print(dict(G.degree)[2])
-#
-# # UndirectedGraph = nx.from_edgelist(edge_list)
-#
-# # UndirectedGraph = nx.Graph()
-# # UndirectedGraph.add_edges_from(edge_list)
-# #
-# # adjMatrix = np.array([[0, 1, 1],
-# #                       [0, 0, 0],
-# #                       [0, 0, 0]])
-# #
-# # UndirectedGraph2 = nx.from_numpy_array(adjMatrix, create_using=nx.DiGraph)
-#
-# # nx.draw_spring(UndirectedGraph2, with_labels=True)
-# plt.show()

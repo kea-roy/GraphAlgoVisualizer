@@ -162,7 +162,6 @@ def get_prims_color_maps(graph: nx.Graph) -> tuple[list[list[str]], list[list[st
             else:
                 edge_color_map.append("red")
         edge_color_maps.append(edge_color_map)
-    print(mst_edges)
     return color_maps, edge_color_maps
 
 
@@ -231,7 +230,6 @@ def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node
         if data['flow'] >= data['capacity']:
             color = 'red'
         elif data['flow'] > 0:
-            print("Positive flow")
             color = 'darkorange'
         else:
             color = 'green'
@@ -239,7 +237,7 @@ def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node
     label_maps.append(label_map)
     edge_color_maps.append(edge_color_map)
     while path:
-        path, reserve = dfs(graph, source_node, sink_node)
+        path, reserve = dfs_helper(graph, source_node, sink_node)
         max_flow += reserve
         for from_node, to_node in zip(path, path[1:]):
             if graph.has_edge(from_node, to_node):
@@ -255,7 +253,6 @@ def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node
             if data['flow'] >= data['capacity']:
                 color = 'red'
             elif data['flow'] > 0:
-                print("Positive flow")
                 color = 'darkorange'
             else:
                 color = 'green'
@@ -265,7 +262,7 @@ def get_ford_fulkerson_color_maps(graph: nx.DiGraph, source_node: str, sink_node
     return [color_map] * len(label_maps), edge_color_maps, label_maps
 
 
-def dfs(graph: nx.DiGraph, source_node: str, sink_node: str) -> tuple[list, int]:
+def dfs_helper(graph: nx.DiGraph, source_node: str, sink_node: str) -> tuple[list, int]:
     undirected = graph.to_undirected()
     explored = {source_node}
     stack = [(source_node, 0, dict(undirected[source_node]))]

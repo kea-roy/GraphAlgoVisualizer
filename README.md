@@ -64,7 +64,7 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
+    <li><a href="#demos">Demos</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
@@ -90,7 +90,7 @@ The graph's node colors and edge colors change to show step by step iterations o
 
 
 
-### Built With
+## Built With
 
 <!--* [![Next][Next.js]][Next-url]-->
 <!--* [![React][React.js]][React-url]-->
@@ -148,7 +148,7 @@ This project requires the following dependencies to run:
    ```sh
    git clone https://github.com/kea-roy/GraphAlgoVisualizer.git
    ```
-3. Run ```__init__.py```
+3. Run ```main.py```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
